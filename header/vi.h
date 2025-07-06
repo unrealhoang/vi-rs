@@ -11,6 +11,22 @@
 #include <stdlib.h>
 
 /**
+ * Represents the style of accent placement.
+ */
+typedef enum ViAccentStyle {
+  New = 0,
+  Old = 1,
+} ViAccentStyle;
+
+/**
+ * Opaque struct representing an incremental buffer.
+ * The actual Rust struct `RustIncrementalBuffer` will be boxed and its pointer cast to this.
+ */
+typedef struct ViIncrementalBuffer {
+  uint8_t _private[0];
+} ViIncrementalBuffer;
+
+/**
  * Transforms an input string using the specified Vietnamese input method.
  *
  * # Safety
@@ -26,5 +42,80 @@ int transform_buffer_c(const char *method_type,
                        const char *input_buffer,
                        char *output_buffer,
                        uintptr_t output_buffer_size);
+
+/**
+ * Creates an incremental processing buffer for a given input method.
+ *
+ * # Safety
+ * - `method_type` must be a pointer to a valid null-terminated C string.
+ * - The caller is responsible for freeing the returned buffer using `vi_incremental_buffer_free`.
+ */
+struct ViIncrementalBuffer *vi_create_incremental_buffer(const char *method_type);
+
+/**
+ * Pushes a character to the incremental buffer and returns the current transformed string.
+ *
+ * # Safety
+ * - `buffer_ptr` must be a valid pointer to a `ViIncrementalBuffer` created by `vi_create_incremental_buffer`.
+ * - The returned C string is owned by the buffer. It is valid until the next call to
+ *   `vi_incremental_buffer_push`, `vi_incremental_buffer_clear`, or `vi_incremental_buffer_free` on the same buffer.
+ *   The caller must not free this string.
+ */
+const char *vi_incremental_buffer_push(struct ViIncrementalBuffer *buffer_ptr,
+                                       char ch);
+
+/**
+ * Returns the current transformed string from the incremental buffer.
+ *
+ * # Safety
+ * - `buffer_ptr` must be a valid pointer to a `ViIncrementalBuffer` created by `vi_create_incremental_buffer`.
+ * - The returned C string is owned by the buffer. It is valid until the next call to
+ *   `vi_incremental_buffer_push`, `vi_incremental_buffer_clear`, or `vi_incremental_buffer_free` on the same buffer.
+ *   The caller must not free this string.
+ */
+const char *vi_incremental_buffer_view(struct ViIncrementalBuffer *buffer_ptr);
+
+/**
+ * Clears the content and input of the incremental buffer.
+ *
+ * # Safety
+ * - `buffer_ptr` must be a valid pointer to a `ViIncrementalBuffer` created by `vi_create_incremental_buffer`.
+ */
+void vi_incremental_buffer_clear(struct ViIncrementalBuffer *buffer_ptr);
+
+/**
+ * Returns the current sequence of input characters in the incremental buffer.
+ *
+ * # Safety
+ * - `buffer_ptr` must be a valid pointer to a `ViIncrementalBuffer` created by `vi_create_incremental_buffer`.
+ * - The returned C string is owned by the buffer. It is valid until the next call to
+ *   `vi_incremental_buffer_push`, `vi_incremental_buffer_clear`, or `vi_incremental_buffer_free` on the same buffer.
+ *   The caller must not free this string.
+ */
+const char *vi_incremental_buffer_get_input(struct ViIncrementalBuffer *buffer_ptr);
+
+/**
+ * Frees the memory associated with the incremental buffer.
+ *
+ * # Safety
+ * - `buffer_ptr` must be a valid pointer to a `ViIncrementalBuffer` created by `vi_create_incremental_buffer`.
+ * - After calling this function, `buffer_ptr` becomes invalid and must not be used again.
+ */
+void vi_incremental_buffer_free(struct ViIncrementalBuffer *buffer_ptr);
+
+/**
+ * Transforms an input string using the specified Vietnamese input method and accent style.
+ *
+ * # Safety
+ * - `method_type` must be a pointer to a valid null-terminated C string.
+ * - `input_buffer` must be a pointer to a valid null-terminated C string.
+ * - `output_buffer` must be a pointer to a mutable character buffer of at least `output_buffer_size` bytes.
+ * - `output_buffer_size` must be large enough to hold the transformed string, including the null terminator.
+ */
+int vi_transform_buffer_with_style(const char *method_type,
+                                   enum ViAccentStyle style,
+                                   const char *input_buffer,
+                                   char *output_buffer,
+                                   uintptr_t output_buffer_size);
 
 #endif /* VI_H */
