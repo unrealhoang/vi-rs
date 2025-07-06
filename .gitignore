@@ -1,3 +1,5 @@
 /target
 **/*.rs.bk
-examples/simple
+
+.direnv
+.envrc
